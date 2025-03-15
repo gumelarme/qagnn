@@ -551,7 +551,7 @@ class DotProductSimilarity(SimilarityFunction):
 
 
 class MatrixAttention(nn.Module):
-    def __init__(self, similarity_function: SimilarityFunction = None) -> None:
+    def __init__(self, similarity_function: SimilarityFunction | None = None) -> None:
         super().__init__()
         self._similarity_function = similarity_function or DotProductSimilarity()
 

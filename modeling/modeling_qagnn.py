@@ -1,7 +1,10 @@
-from modeling.modeling_encoder import TextEncoder, MODEL_NAME_TO_CLASS
-from utils.data_utils import *
-from utils.layers import *
+import math
+import torch
+from torch import nn
+from utils.data_utils import load_input_tensors,load_sparse_adj_data_with_contextnode, MultiGPUSparseAdjDataBatchGenerator
+from utils.layers import GELU, MLP, CustomizedEmbedding, MultiheadAttPoolLayer 
 import torch.nn.functional as F
+from modeling.modeling_encoder import TextEncoder, MODEL_NAME_TO_CLASS
 
 
 class QAGNN_Message_Passing(nn.Module):
@@ -83,7 +86,10 @@ class QAGNN_Message_Passing(nn.Module):
         edge_index, edge_type = A #edge_index: [2, total_E]   edge_type: [total_E, ]  where total_E is for the batched graph
         _X = X.view(-1, X.size(2)).contiguous() #[`total_n_nodes`, d_node] where `total_n_nodes` = b_size * n_node
         _node_type = node_type.view(-1).contiguous() #[`total_n_nodes`, ]
-        _node_feature_extra = torch.cat([node_type_emb, node_score_emb], dim=2).view(_node_type.size(0), -1).contiguous() #[`total_n_nodes`, dim]
+        _node_feature_extra = (torch
+                               .cat([node_type_emb, node_score_emb], dim=2)  # type: ignore
+                               .view(_node_type.size(0), -1)
+                               .contiguous()) #[`total_n_nodes`, dim]
 
         _X = self.mp_helper(_X, edge_index, edge_type, _node_type, _node_feature_extra)
 
@@ -254,12 +260,23 @@ class LM_QAGNN(nn.Module):
 
 class LM_QAGNN_DataLoader(object):
 
-    def __init__(self, args, train_statement_path, train_adj_path,
-                 dev_statement_path, dev_adj_path,
-                 test_statement_path, test_adj_path,
-                 batch_size, eval_batch_size, device, model_name, max_node_num=200, max_seq_length=128,
-                 is_inhouse=False, inhouse_train_qids_path=None,
-                 subsample=1.0, use_cache=True):
+    def __init__(self, args, 
+                train_statement_path: str,
+                 train_adj_path: str,
+                 dev_statement_path: str,
+                 dev_adj_path: str,
+                 test_statement_path: str,
+                 test_adj_path: str,
+                 batch_size: int, 
+                 eval_batch_size: int,
+                 device, 
+                 model_name: str,
+                 max_node_num=200,
+                 max_seq_length=128,
+                 is_inhouse=False,
+                 inhouse_train_qids_path=None,
+                 subsample=1.0,
+                 use_cache=True):
         super().__init__()
         self.args = args
         self.batch_size = batch_size
@@ -287,7 +304,7 @@ class LM_QAGNN_DataLoader(object):
             assert all(len(self.test_qids) == len(self.test_adj_data[0]) == x.size(0) for x in [self.test_labels] + self.test_encoder_data + self.test_decoder_data)
 
 
-        if self.is_inhouse:
+        if self.is_inhouse and inhouse_train_qids_path is not None:
             with open(inhouse_train_qids_path, 'r') as fin:
                 inhouse_qids = set(line.strip() for line in fin)
             self.inhouse_train_indexes = torch.tensor([i for i, qid in enumerate(self.train_qids) if qid in inhouse_qids])
@@ -452,7 +469,7 @@ class GATConvE(MessagePassing):
             return out
 
 
-    def message(self, edge_index, x_i, x_j, edge_attr): #i: tgt, j:src
+    def message(self, edge_index, x_i, x_j, edge_attr): #type: ignore #i: tgt, j:src
         # print ("edge_attr.size()", edge_attr.size()) #[E, emb_dim]
         # print ("x_j.size()", x_j.size()) #[E, emb_dim]
         # print ("x_i.size()", x_i.size()) #[E, emb_dim]

@@ -1,13 +1,19 @@
 import random
+import time
+import argparse
+import torch
+import torch.nn.functional as F
+from torch import nn
+from tqdm  import tqdm
 
-try:
-    from transformers import (ConstantLRSchedule, WarmupLinearSchedule, WarmupConstantSchedule)
-except:
-    from transformers import get_constant_schedule, get_constant_schedule_with_warmup,  get_linear_schedule_with_warmup
+from transformers import get_constant_schedule, get_constant_schedule_with_warmup,  get_linear_schedule_with_warmup
 
-from modeling.modeling_qagnn import *
 from utils.optimization_utils import OPTIMIZER_CLASSES
-from utils.parser_utils import *
+# from utils.parser_utils import *
+from utils.parser_utils import get_parser, bool_flag
+from utils.data_utils import load_statement_dict
+from utils.utils import export_config, check_path, freeze_net, unfreeze_net
+from modeling.modeling_qagnn import LM_QAGNN_DataLoader, LM_QAGNN
 
 
 DECODER_DEFAULT_LR = {
@@ -180,21 +186,12 @@ def train(args):
     optimizer = OPTIMIZER_CLASSES[args.optim](grouped_parameters)
 
     if args.lr_schedule == 'fixed':
-        try:
-            scheduler = ConstantLRSchedule(optimizer)
-        except:
-            scheduler = get_constant_schedule(optimizer)
+        scheduler = get_constant_schedule(optimizer)
     elif args.lr_schedule == 'warmup_constant':
-        try:
-            scheduler = WarmupConstantSchedule(optimizer, warmup_steps=args.warmup_steps)
-        except:
-            scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps)
+        scheduler = get_constant_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps)
     elif args.lr_schedule == 'warmup_linear':
         max_steps = int(args.n_epochs * (dataset.train_size() / args.batch_size))
-        try:
-            scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=max_steps)
-        except:
-            scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=max_steps)
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=max_steps)
 
     print('parameters:')
     for name, param in model.decoder.named_parameters():
@@ -218,10 +215,12 @@ def train(args):
             correct_logits = flat_logits[correct_mask == 1].contiguous().view(-1, 1).expand(-1, num_choice - 1).contiguous().view(-1)  # of length batch_size*(num_choice-1)
             wrong_logits = flat_logits[correct_mask == 0]
             y = wrong_logits.new_ones((wrong_logits.size(0),))
-            loss = loss_func(correct_logits, wrong_logits, y)  # margin ranking loss
+            loss = loss_func(correct_logits, wrong_logits, y) #type: ignore  # margin ranking loss
+
         elif args.loss == 'cross_entropy':
-            loss = loss_func(logits, labels)
-        return loss
+            loss = loss_func(logits, labels) #type: ignore
+
+        return loss 
 
     ###################################################################################################
     #   Training                                                                                      #
@@ -248,7 +247,7 @@ def train(args):
             model.train()
             for qids, labels, *input_data in dataset.train():
                 optimizer.zero_grad()
-                bs = labels.size(0)
+                bs = labels.size(0) # type: ignore
                 for a in range(0, bs, args.mini_batch_size):
                     b = min(a + args.mini_batch_size, bs)
                     if args.fp16:
@@ -260,27 +259,32 @@ def train(args):
                         loss = compute_loss(logits, labels[a:b])
                     loss = loss * (b - a) / bs
                     if args.fp16:
-                        scaler.scale(loss).backward()
+                        scaler.scale(loss).backward() #type: ignore
                     else:
                         loss.backward()
                     total_loss += loss.item()
                 if args.max_grad_norm > 0:
                     if args.fp16:
-                        scaler.unscale_(optimizer)
+                        scaler.unscale_(optimizer) #type: ignore
                         nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                     else:
                         nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-                scheduler.step()
+                scheduler.step() #type: ignore
+
                 if args.fp16:
-                    scaler.step(optimizer)
-                    scaler.update()
+                    scaler.step(optimizer) #type: ignore
+                    scaler.update() #type: ignore
                 else:
                     optimizer.step()
 
                 if (global_step + 1) % args.log_interval == 0:
                     total_loss /= args.log_interval
                     ms_per_batch = 1000 * (time.time() - start_time) / args.log_interval
-                    print('| step {:5} |  lr: {:9.7f} | loss {:7.4f} | ms/batch {:7.2f} |'.format(global_step, scheduler.get_lr()[0], total_loss, ms_per_batch))
+                    print('| step {:5} |  lr: {:9.7f} | loss {:7.4f} | ms/batch {:7.2f} |'.format(
+                        global_step,
+                        scheduler.get_lr()[0], #type: ignore
+                        total_loss, ms_per_batch
+                    ))
                     total_loss = 0
                     start_time = time.time()
                 global_step += 1
@@ -416,7 +420,7 @@ def eval_detail(args):
                     logits, _, concept_ids, node_type_ids, edge_index, edge_type = model(*input_data, detail=True)
                     predictions = logits.argmax(1) #[bsize, ]
                     preds_ranked = (-logits).argsort(1) #[bsize, n_choices]
-                    for i, (qid, label, pred, _preds_ranked, cids, ntype, edges, etype) in enumerate(zip(qids, labels, predictions, preds_ranked, concept_ids, node_type_ids, edge_index, edge_type)):
+                    for _i, (qid, label, pred, _preds_ranked, cids, ntype, edges, etype) in enumerate(zip(qids, labels, predictions, preds_ranked, concept_ids, node_type_ids, edge_index, edge_type)):
                         acc = int(pred.item()==label.item())
                         print ('{},{}'.format(qid, chr(ord('A') + pred.item())), file=f_preds)
                         f_preds.flush()

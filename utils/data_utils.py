@@ -60,6 +60,8 @@ class MultiGPUSparseAdjDataBatchGenerator(object):
             batch_lists0 = [self._to_device([x[i] for i in batch_indexes], self.device0) for x in self.lists0]
             batch_lists1 = [self._to_device([x[i] for i in batch_indexes], self.device1) for x in self.lists1]
 
+            if self.adj_data == None:
+                raise Exception("adj_data is None, cannot continue")
 
             edge_index_all, edge_type_all = self.adj_data
             #edge_index_all: nested list of shape (n_samples, num_choice), where each entry is tensor[2, E]
@@ -97,6 +99,7 @@ def load_sparse_adj_data_with_contextnode(adj_pk_path, max_node_num, num_choice,
         node_type_ids = torch.full((n_samples, max_node_num), 2, dtype=torch.long) #default 2: "other node"
         node_scores = torch.zeros((n_samples, max_node_num, 1), dtype=torch.float)
 
+        half_n_rel = None
         adj_lengths_ori = adj_lengths.clone()
         for idx, _data in tqdm(enumerate(adj_concept_pairs), total=n_samples, desc='loading adj matrices'):
             adj, concepts, qm, am, cid2score = _data['adj'], _data['concepts'], _data['qmask'], _data['amask'], _data['cid2score']
@@ -482,6 +485,8 @@ def load_input_tensors(input_jsonl_path, model_type, model_name, max_seq_length)
         return load_gpt_input_tensors(input_jsonl_path, max_seq_length)
     elif model_type in ('bert', 'xlnet', 'roberta', 'albert'):
         return load_bert_xlnet_roberta_input_tensors(input_jsonl_path, model_type, model_name, max_seq_length)
+
+    raise NotImplementedError(f"{model_type} is not implemented!")
 
 
 def load_info(statement_path: str):

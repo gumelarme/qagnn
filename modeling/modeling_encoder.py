@@ -2,12 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from transformers import (OPENAI_GPT_PRETRAINED_CONFIG_ARCHIVE_MAP, BERT_PRETRAINED_CONFIG_ARCHIVE_MAP,
-                          XLNET_PRETRAINED_CONFIG_ARCHIVE_MAP, ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP)
-try:
-    from transformers import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP
-except:
-    pass
+from transformers import OpenAIGPTConfig, BertConfig, XLNetConfig, RobertaConfig, AlbertConfig, OpenAIGPTModel
+
+# https://huggingface.co/transformers/v3.4.0/_modules/transformers/configuration_openai.html
+from modeling.legacy_model_config import (
+    OPENAI_GPT_PRETRAINED_CONFIG_ARCHIVE_MAP,
+    BERT_PRETRAINED_CONFIG_ARCHIVE_MAP,
+    XLNET_PRETRAINED_CONFIG_ARCHIVE_MAP,
+    ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP,
+    ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP,
+)
+
 from transformers import AutoModel, BertModel, BertConfig
 # from transformers.modeling_bert import BERT_PRETRAINED_MODEL_ARCHIVE_MAP
 from utils.layers import *
@@ -18,12 +23,10 @@ MODEL_CLASS_TO_NAME = {
     'bert': list(BERT_PRETRAINED_CONFIG_ARCHIVE_MAP.keys()),
     'xlnet': list(XLNET_PRETRAINED_CONFIG_ARCHIVE_MAP.keys()),
     'roberta': list(ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP.keys()),
+    'albert' :  list(ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP.keys()),
     'lstm': ['lstm'],
+
 }
-try:
-    MODEL_CLASS_TO_NAME['albert'] =  list(ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP.keys())
-except:
-    pass
 
 MODEL_NAME_TO_CLASS = {model_name: model_class for model_class, model_name_list in MODEL_CLASS_TO_NAME.items() for model_name in model_name_list}
 
@@ -112,6 +115,8 @@ class TextEncoder(nn.Module):
         layer_id: only works for non-LSTM encoders
         output_token_states: if True, return hidden states of specific layer and attention masks
         '''
+        cls_token_ids = None # For GPT
+        output_mask = None # Else
 
         if self.model_type in ('lstm',):  # lstm
             input_ids, lengths = inputs
@@ -122,6 +127,7 @@ class TextEncoder(nn.Module):
         else:  # bert / xlnet / roberta
             input_ids, attention_mask, token_type_ids, output_mask = inputs
             outputs = self.module(input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
+
         all_hidden_states = outputs[-1]
         hidden_states = all_hidden_states[layer_id]
 
@@ -140,6 +146,7 @@ class TextEncoder(nn.Module):
             if self.output_token_states:
                 return hidden_states, output_mask
             sent_vecs = self.module.pooler(hidden_states)
+
         return sent_vecs, all_hidden_states
 
 

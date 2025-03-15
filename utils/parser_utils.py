@@ -1,6 +1,6 @@
 import argparse
-from utils.utils import *
-from modeling.modeling_encoder import MODEL_NAME_TO_CLASS
+from utils.utils import bool_flag
+# from modeling.modeling_encoder import MODEL_NAME_TO_CLASS
 
 ENCODER_DEFAULT_LR = {
     'default': 1e-3,
