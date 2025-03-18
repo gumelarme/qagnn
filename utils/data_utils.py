@@ -38,11 +38,11 @@ class MultiGPUSparseAdjDataBatchGenerator(object):
     def __iter__(self):
         bs = self.batch_size
         n = self.indexes.size(0)
-        if self.mode=='train' and self.args.drop_partial_batch:
-            print ('dropping partial batch')
+        if self.mode == 'train' and self.args.drop_partial_batch:
+            print('dropping partial batch')
             n = (n//bs) *bs
-        elif self.mode=='train' and self.args.fill_partial_batch:
-            print ('filling partial batch')
+        elif self.mode == 'train' and self.args.fill_partial_batch:
+            print('filling partial batch')
             remain = n % bs
             if remain > 0:
                 extra = np.random.choice(self.indexes[:-remain], size=(bs-remain), replace=False)
@@ -53,6 +53,7 @@ class MultiGPUSparseAdjDataBatchGenerator(object):
         for a in range(0, n, bs):
             b = min(n, a + bs)
             batch_indexes = self.indexes[a:b]
+
             batch_qids = [self.qids[idx] for idx in batch_indexes]
             batch_labels = self._to_device(self.labels[batch_indexes], self.device1)
             batch_tensors0 = [self._to_device(x[batch_indexes], self.device0) for x in self.tensors0]

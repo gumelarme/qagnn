@@ -9,12 +9,10 @@ from tqdm  import tqdm
 from transformers import get_constant_schedule, get_constant_schedule_with_warmup,  get_linear_schedule_with_warmup
 
 from utils.optimization_utils import OPTIMIZER_CLASSES
-# from utils.parser_utils import *
 from utils.parser_utils import get_parser, bool_flag
 from utils.data_utils import load_statement_dict
 from utils.utils import export_config, check_path, freeze_net, unfreeze_net
 from modeling.modeling_qagnn import LM_QAGNN_DataLoader, LM_QAGNN
-
 
 DECODER_DEFAULT_LR = {
     'csqa': 1e-3,
@@ -27,11 +25,11 @@ import numpy as np
 
 import socket, os, subprocess, datetime
 print(socket.gethostname())
-print ("pid:", os.getpid())
-print ("conda env:", os.environ['CONDA_DEFAULT_ENV'])
-print ("screen: %s" % subprocess.check_output('echo $STY', shell=True).decode('utf'))
-print ("gpu: %s" % subprocess.check_output('echo $CUDA_VISIBLE_DEVICES', shell=True).decode('utf'))
-
+# print ("pid:", os.getpid())
+# print ("conda env:", os.environ['CONDA_DEFAULT_ENV'])
+# print ("screen: %s" % subprocess.check_output('echo $STY', shell=True).decode('utf'))
+# print ("gpu: %s" % subprocess.check_output('echo $CUDA_VISIBLE_DEVICES', shell=True).decode('utf'))
+#
 
 def evaluate_accuracy(eval_set, model):
     n_samples, n_correct = 0, 0
@@ -44,7 +42,8 @@ def evaluate_accuracy(eval_set, model):
     return n_correct / n_samples
 
 
-def main():
+def _main():
+    print("Start training...")
     parser = get_parser()
     args, _ = parser.parse_known_args()
     parser.add_argument('--mode', default='train', choices=['train', 'eval_detail'], help='run training or evaluation')
@@ -95,6 +94,8 @@ def main():
         parser.set_defaults(k=1)
     args = parser.parse_args()
     args.fp16 = args.fp16 and (torch.__version__ >= '1.6.0')
+
+    print("Args: ", args)
 
     if args.mode == 'train':
         train(args)
@@ -220,7 +221,7 @@ def train(args):
         elif args.loss == 'cross_entropy':
             loss = loss_func(logits, labels) #type: ignore
 
-        return loss 
+        return loss  # type: ignore
 
     ###################################################################################################
     #   Training                                                                                      #
@@ -237,6 +238,7 @@ def train(args):
     start_time = time.time()
     model.train()
     freeze_net(model.encoder)
+    print("Just before training")
     if True:
     # try:
         for epoch_id in range(args.n_epochs):
@@ -245,7 +247,8 @@ def train(args):
             if epoch_id == args.refreeze_epoch:
                 freeze_net(model.encoder)
             model.train()
-            for qids, labels, *input_data in dataset.train():
+            for question_id, labels, *input_data in dataset.train():
+                breakpoint()
                 optimizer.zero_grad()
                 bs = labels.size(0) # type: ignore
                 for a in range(0, bs, args.mini_batch_size):
@@ -301,12 +304,12 @@ def train(args):
                 preds_path = os.path.join(args.save_dir, 'test_e{}_preds.csv'.format(epoch_id))
                 with open(preds_path, 'w') as f_preds:
                     with torch.no_grad():
-                        for qids, labels, *input_data in tqdm(eval_set):
+                        for question_id, labels, *input_data in tqdm(eval_set):
                             count += 1
                             logits, _, concept_ids, node_type_ids, edge_index, edge_type = model(*input_data, detail=True)
                             predictions = logits.argmax(1) #[bsize, ]
                             preds_ranked = (-logits).argsort(1) #[bsize, n_choices]
-                            for i, (qid, label, pred, _preds_ranked, cids, ntype, edges, etype) in enumerate(zip(qids, labels, predictions, preds_ranked, concept_ids, node_type_ids, edge_index, edge_type)):
+                            for i, (qid, label, pred, _preds_ranked, cids, ntype, edges, etype) in enumerate(zip(question_id, labels, predictions, preds_ranked, concept_ids, node_type_ids, edge_index, edge_type)):
                                 acc = int(pred.item()==label.item())
                                 print ('{},{}'.format(qid, chr(ord('A') + pred.item())), file=f_preds)
                                 f_preds.flush()
@@ -416,6 +419,7 @@ def eval_detail(args):
         with open(preds_path, 'w') as f_preds:
             with torch.no_grad():
                 for qids, labels, *input_data in tqdm(eval_set):
+                    breakpoint()
                     count += 1
                     logits, _, concept_ids, node_type_ids, edge_index, edge_type = model(*input_data, detail=True)
                     predictions = logits.argmax(1) #[bsize, ]
@@ -430,7 +434,6 @@ def eval_detail(args):
         print('-' * 71)
         print('test_acc {:7.4f}'.format(test_acc))
         print('-' * 71)
-
 
 
 if __name__ == '__main__':
