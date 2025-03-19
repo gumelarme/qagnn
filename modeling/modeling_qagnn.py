@@ -120,6 +120,7 @@ class QAGNN(nn.Module):
 
         self.activation = GELU()
 
+        breakpoint()
         self.gnn = QAGNN_Message_Passing(args, k=k, n_ntype=n_ntype, n_etype=n_etype,
                                          input_size=concept_dim, hidden_size=concept_dim, output_size=concept_dim,
                                          dropout=p_gnn)
@@ -156,6 +157,7 @@ class QAGNN(nn.Module):
 
         returns: (batch_size, 1)
         """
+        breakpoint()
         gnn_input0 = self.activation(self.svec2nvec(sent_vecs)).unsqueeze(1)  # (batch_size, 1, dim_node)
         gnn_input1 = self.concept_emb(concept_ids[:, 1:] - 1, emb_data)  # (batch_size, n_node-1, dim_node)
         gnn_input1 = gnn_input1.to(node_type_ids.device)
@@ -223,7 +225,7 @@ class LM_QAGNN(nn.Module):
         returns: (batch_size, 1)
         """
         batch_size, num_choice = inputs[0].size(0), inputs[0].size(1)
-        breakpoint()
+        # breakpoint()
 
         # Here, merge the batch dimension and the num_choice dimension
         edge_index_orig, edge_type_orig = inputs[-2:]
@@ -245,6 +247,7 @@ class LM_QAGNN(nn.Module):
         adj = (edge_index.to(node_type_ids.device),
                edge_type.to(node_type_ids.device))  # edge_index: [2, total_E]   edge_type: [total_E, ]
 
+        breakpoint()
         sent_vecs, all_hidden_states = self.encoder(*lm_inputs, layer_id=layer_id)
         logits, attn = self.decoder(sent_vecs.to(node_type_ids.device),
                                     concept_ids,

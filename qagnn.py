@@ -42,7 +42,7 @@ def evaluate_accuracy(eval_set, model):
     return n_correct / n_samples
 
 
-def _main():
+def main():
     print("Start training...")
     parser = get_parser()
     args, _ = parser.parse_known_args()
@@ -231,7 +231,8 @@ def train(args):
     print('-' * 71)
     if args.fp16:
         print ('Using fp16 training')
-        scaler = torch.cuda.amp.GradScaler()
+        # scaler = torch.cuda.amp.GradScaler()
+        scaler = torch.amp.GradScaler('cuda')
 
     global_step, best_dev_epoch = 0, 0
     best_dev_acc, final_test_acc, total_loss = 0.0, 0.0, 0.0
@@ -248,11 +249,10 @@ def train(args):
                 freeze_net(model.encoder)
             model.train()
             for question_id, labels, *input_data in dataset.train():
-                breakpoint()
                 optimizer.zero_grad()
-                bs = labels.size(0) # type: ignore
-                for a in range(0, bs, args.mini_batch_size):
-                    b = min(a + args.mini_batch_size, bs)
+                batch_size = labels.size(0) # type: ignore
+                for a in range(0, batch_size, args.mini_batch_size):
+                    b = min(a + args.mini_batch_size, batch_size)
                     if args.fp16:
                         with torch.cuda.amp.autocast():
                             logits, _ = model(*[x[a:b] for x in input_data], layer_id=args.encoder_layer)
@@ -260,7 +260,7 @@ def train(args):
                     else:
                         logits, _ = model(*[x[a:b] for x in input_data], layer_id=args.encoder_layer)
                         loss = compute_loss(logits, labels[a:b])
-                    loss = loss * (b - a) / bs
+                    loss = loss * (b - a) / batch_size
                     if args.fp16:
                         scaler.scale(loss).backward() #type: ignore
                     else:
@@ -419,7 +419,6 @@ def eval_detail(args):
         with open(preds_path, 'w') as f_preds:
             with torch.no_grad():
                 for qids, labels, *input_data in tqdm(eval_set):
-                    breakpoint()
                     count += 1
                     logits, _, concept_ids, node_type_ids, edge_index, edge_type = model(*input_data, detail=True)
                     predictions = logits.argmax(1) #[bsize, ]
