@@ -1,0 +1,25 @@
+#!/bin/sh
+
+echo "WSPACE_HOST: $WSPACE_HOST"
+echo "WSPACE_PORT: $WSPACE_PORT"
+
+case "$1" in 
+  "connect")
+    ssh -p $WSPACE_PORT $WSPACE_HOST -L 8080:localhost:8080
+    ;;
+
+  "sync")
+    rsync -riz  -e "ssh -p $WSPACE_PORT" . $WSPACE_HOST:/workspace/qagnn --exclude logs --update --verbose 
+    ;;
+
+  "sync-rclone-config")
+    rsync -riz  -e "ssh -p $WSPACE_PORT" ~/.config/rclone $WSPACE_HOST:/root/.config/  --progress
+    ;;
+
+  *)
+    echo "Command $1 not recognized." 
+    ;;
+esac
+
+
+
