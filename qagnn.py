@@ -405,6 +405,7 @@ def eval_detail(args):
                                            is_inhouse=args.inhouse, inhouse_train_qids_path=args.inhouse_train_qids,
                                            subsample=args.subsample, use_cache=args.use_cache)
 
+    breakpoint()
     save_test_preds = args.save_model
     dev_acc = evaluate_accuracy(dataset.dev(), model)
     print('dev_acc {:7.4f}'.format(dev_acc))

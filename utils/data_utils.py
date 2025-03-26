@@ -89,9 +89,11 @@ def load_sparse_adj_data_with_contextnode(adj_pk_path, max_node_num, num_choice,
     if use_cache:
         with open(cache_path, 'rb') as f:
             adj_lengths_ori, concept_ids, node_type_ids, node_scores, adj_lengths, edge_index, edge_type, half_n_rel = pickle.load(f)
+            breakpoint()
     else:
         with open(adj_pk_path, 'rb') as fin:
             adj_concept_pairs = pickle.load(fin)
+            breakpoint()
 
         n_samples = len(adj_concept_pairs) #this is actually n_questions x n_choices
         edge_index, edge_type = [], []

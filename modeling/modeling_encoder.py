@@ -93,6 +93,7 @@ class TextEncoder(nn.Module):
     valid_model_types = set(MODEL_CLASS_TO_NAME.keys())
 
     def __init__(self, model_name, output_token_states=False, from_checkpoint=None, **kwargs):
+        breakpoint()
         super().__init__()
         self.model_type = MODEL_NAME_TO_CLASS[model_name]
         self.output_token_states = output_token_states
@@ -115,6 +116,7 @@ class TextEncoder(nn.Module):
         layer_id: only works for non-LSTM encoders
         output_token_states: if True, return hidden states of specific layer and attention masks
         '''
+        breakpoint()
         cls_token_ids = None # For GPT
         output_mask = None # Else
 

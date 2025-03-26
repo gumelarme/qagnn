@@ -552,6 +552,8 @@ def coo_to_normalized(adj_path, output_path, max_node_num, num_processes):
 
     with open(adj_path, 'rb') as fin:
         adj_data = pickle.load(fin)
+        breakpoint()
+
     data = [(adj, concepts, qmask, amask, max_node_num) for adj, concepts, qmask, amask in adj_data]
 
     ori_adj_lengths = torch.zeros((len(data),), dtype=torch.int64)

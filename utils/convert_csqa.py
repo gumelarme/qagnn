@@ -52,6 +52,8 @@ def convert_to_entailment(qa_file: str, output_file: str, ans_pos: bool=False):
             output_dict = convert_qajson_to_entailment(json_line, ans_pos)
             output_handle.write(json.dumps(output_dict))
             output_handle.write("\n")
+            breakpoint()
+
     print(f'converted statements saved to {output_file}')
     print()
 
