@@ -1,3 +1,4 @@
+import pickle
 import networkx as nx
 import nltk
 import json
@@ -121,8 +122,6 @@ def extract_english(conceptnet_path, output_csv_path, output_vocab_path):
                     - Lowercase for uniformity.
                 """
 
-
-                breakpoint()
                 rel = toks[1].split("/")[-1].lower()
                 head = del_pos(toks[2]).split("/")[-1].lower()
                 tail = del_pos(toks[3]).split("/")[-1].lower()
@@ -143,7 +142,6 @@ def extract_english(conceptnet_path, output_csv_path, output_vocab_path):
                 fout.write('\t'.join([rel, head, tail, str(data["weight"])]) + '\n')
 
                 for w in [head, tail]:
-                    breakpoint()
                     if w not in concepts_seen:
                         concepts_seen.add(w)
                         cpnet_vocab.append(w)
@@ -192,7 +190,6 @@ def construct_graph(cpnet_csv_path, cpnet_vocab_path, output_path, prune=True):
         attrs = set()
 
         for line in tqdm(fin, total=nrow):
-            breakpoint()
             ls = line.strip().split('\t')
             rel = relation2id[ls[0]]
             subj = concept2id[ls[1]]
@@ -212,9 +209,13 @@ def construct_graph(cpnet_csv_path, cpnet_vocab_path, output_path, prune=True):
                 attrs.add((subj, obj, rel))
                 graph.add_edge(obj, subj, rel=rel + len(relation2id), weight=weight)
                 attrs.add((obj, subj, rel + len(relation2id)))
-            breakpoint()
 
-    nx.write_gpickle(graph, output_path)
+    try:
+        nx.write_gpickle(graph, output_path)
+    except:
+        with open(output_path, 'wb') as f:
+            pickle.dump(graph, f, pickle.HIGHEST_PROTOCOL)
+
     print(f"graph file saved to {output_path}")
     print()
 

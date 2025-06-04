@@ -54,6 +54,7 @@ def create_pattern(nlp, doc, debug=False):
 
 
 def create_matcher_patterns(cpnet_vocab_path, output_path, debug=False):
+    breakpoint()
     cpnet_vocab = load_cpnet_vocab(cpnet_vocab_path)
     nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner', 'textcat'])
     docs = nlp.pipe(cpnet_vocab)

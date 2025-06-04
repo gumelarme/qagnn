@@ -34,7 +34,7 @@ save_dir_pref='saved_models'
 mkdir -p $save_dir_pref
 mkdir -p logs
 
-export PYTHONBREAKPOINT=0
+export PYTHONBREAKPOINT=1
 ###### Training ######
 for seed in 0; do
   python3 -u qagnn.py --dataset $dataset \

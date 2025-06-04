@@ -17,4 +17,18 @@ RUN source /venv/main/bin/activate && \
 COPY marimo.sh /opt/supervisor-scripts/marimo.sh
 COPY marimo.conf /etc/supervisor/conf.d/marimo.conf
 
+RUN apt-get update && \
+    apt install -y\
+    aria2 \
+    nix-bin \
+    fzf \
+    ripgrep \
+    fd-find && \
+    ln -s $(which fdfind) /bin/fd  && \
+
+    #  Install Yazi
+    wget https://github.com/sxyazi/yazi/releases/download/v25.5.28/yazi-x86_64-unknown-linux-gnu.zip -O /workspace/yazi.zip && \
+    mkdir /workspace/yazi && unzip /workspace/yazi.zip -d /workspace/yazi && \
+    ln -s /workspace/yazi/yazi /bin/yazi
+
 ENTRYPOINT ["/opt/instance-tools/bin/entrypoint.sh"]

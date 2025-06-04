@@ -128,6 +128,7 @@ def train(args):
     ###################################################################################################
     #   Load data                                                                                     #
     ###################################################################################################
+    # XXX: inspect
     cp_emb = [np.load(path) for path in args.ent_emb_paths]
     cp_emb = torch.tensor(np.concatenate(cp_emb, 1), dtype=torch.float)
 

@@ -39,7 +39,12 @@ def load_resources(cpnet_vocab_path):
 
 def load_cpnet(cpnet_graph_path):
     global cpnet, cpnet_simple
-    cpnet = nx.read_gpickle(cpnet_graph_path)
+    try:
+        cpnet = nx.read_gpickle(cpnet_graph_path)
+    except:
+        with open(cpnet_graph_path, 'rb') as f:
+            cpnet = pickle.load(f)
+
     cpnet_simple = nx.Graph()
     for u, v, data in cpnet.edges(data=True):
         w = data['weight'] if 'weight' in data else 1.0
@@ -398,7 +403,11 @@ def generate_adj_matrices(ori_schema_graph_path, cpnet_graph_path, cpnet_vocab_p
 
     global cpnet_all
     if cpnet_all is None:
-        cpnet_all = nx.read_gpickle(cpnet_graph_path)
+        try:
+            cpnet_all = nx.read_gpickle(cpnet_graph_path)
+        except:
+            with open(cpnet_graph_path, 'rb') as f:
+                cpnet_all = pickle.load(f)
 
     with open(ori_schema_graph_path, 'r') as fin:
         nxg_strs = [line for line in fin]
@@ -477,6 +486,7 @@ def generate_adj_data_from_grounded_concepts__use_LM(grounded_path, cpnet_graph_
     num_processes: int
     """
     print(f'generating adj data for {grounded_path}...')
+    breakpoint()
 
     global concept2id, id2concept, relation2id, id2relation, cpnet_simple, cpnet
     if any(x is None for x in [concept2id, id2concept, relation2id, id2relation]):
