@@ -34,7 +34,7 @@ save_dir_pref='saved_models'
 mkdir -p $save_dir_pref
 mkdir -p logs
 
-export PYTHONBREAKPOINT=1
+# export PYTHONBREAKPOINT=0
 ###### Training ######
 for seed in 0; do
   python3 -u qagnn.py --dataset $dataset \
@@ -48,6 +48,6 @@ for seed in 0; do
       --dev_statements  data/${dataset}/statement/dev.statement.jsonl \
       --test_statements  data/${dataset}/statement/test.statement.jsonl \
       --save_model \
-      --save_dir ${save_dir_pref}/${dataset}/enc-${model}__k${k}__gnndim${gnndim}__bs${bs}__seed${seed}__${dt} $args \
-  > logs/train_${dataset}__enc-${model}__k${k}__gnndim${gnndim}__bs${bs}__seed${seed}__${dt}.log.txt
+      --save_dir ${save_dir_pref}/${dataset}/enc-${model}__k${k}__gnndim${gnndim}__bs${bs}__seed${seed}__${dt} $args 
+  # > logs/train_${dataset}__enc-${model}__k${k}__gnndim${gnndim}__bs${bs}__seed${seed}__${dt}.log.txt
 done

@@ -50,6 +50,7 @@ class MultiGPUSparseAdjDataBatchGenerator(object):
                 n = self.indexes.size(0)
                 assert n % bs == 0
 
+        breakpoint()
         for a in range(0, n, bs):
             b = min(n, a + bs)
             batch_indexes = self.indexes[a:b]
