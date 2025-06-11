@@ -1,7 +1,7 @@
 import math
 import torch
-from transformers import AdamW
-from torch.optim import SGD, Adam
+# from transformers import AdamW
+from torch.optim import SGD, Adam, AdamW
 from torch.optim.optimizer import Optimizer
 
 

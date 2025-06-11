@@ -163,7 +163,7 @@ class QAGNN(nn.Module):
         gnn_input1 = gnn_input1.to(node_type_ids.device)
         gnn_input = self.dropout_e(torch.cat([gnn_input0, gnn_input1], dim=1))  # (batch_size, n_node, dim_node)
 
-        # Normalize node sore (use norm from Z)
+        # Normalize node score (use norm from Z)
         _mask = (torch.arange(node_scores.size(1), device=node_scores.device) < adj_lengths.unsqueeze(
             1)).float()  # 0 means masked out #[batch_size, n_node]
         node_scores = -node_scores
